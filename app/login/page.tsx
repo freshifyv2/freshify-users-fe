@@ -67,31 +67,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-split">
-      <aside className="auth-brand">
-        <div className="auth-brand-content">
-          <div className="auth-brand-mark">
-            <span className="auth-brand-mark-glyph" aria-hidden />
-            Sovereign Portal
-          </div>
-          <h1>The sovereign foundation, working out of the box.</h1>
-          <p className="lede">
-            Users, Companies, and Workspaces as first-class sovereign modules — the
-            same architecture you license, the same software you build on.
+    <div className="login-split">
+      <aside className="login-brand-panel">
+        <div className="login-brand-panel-logo">Sovereign Portal</div>
+        <div>
+          <h1 className="login-brand-panel-headline">
+            The sovereign foundation, working out of the box.
+          </h1>
+          <p className="login-brand-panel-sub">
+            Users, Companies, and Workspaces as first-class sovereign modules —
+            the same architecture you license, the same software you build on.
           </p>
-          <ul className="auth-bullets">
-            <li>Pluggable auth — Twilio, Auth0, Okta, Cognito, Clerk</li>
-            <li>Standard Module Interface v0.1, with conformance you can verify</li>
-            <li>Independently deployed FE / BE pairs composed by a shell</li>
-            <li>No hosted SaaS. Always self-hosted on your cloud.</li>
-          </ul>
         </div>
+        <p className="login-brand-panel-sub" style={{ fontSize: 13, opacity: 0.5 }}>
+          Standard Module Interface v0.1 · github.com/freshifyv2
+        </p>
       </aside>
 
-      <main className="auth-form-pane">
-        <div className="auth-form-card">
-          <h2>Sign in</h2>
-          <p className="sub">
+      <main className="login-form-panel">
+        <div className="login-form-card">
+          <h1>Sign in</h1>
+          <p>
             {step === "identifier"
               ? "Phone or email — we'll send you a verification code."
               : `Code sent to ${identifier}`}
@@ -99,42 +95,37 @@ export default function LoginPage() {
 
           {step === "identifier" ? (
             <form onSubmit={requestCode}>
-              <div className="auth-tabs" role="tablist">
+              <div className="filter-pills" style={{ marginBottom: 20 }}>
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={channel === "sms"}
-                  className={`auth-tab ${channel === "sms" ? "active" : ""}`}
+                  className={`filter-pill ${channel === "sms" ? "is-active" : ""}`}
                   onClick={() => setChannel("sms")}
                 >
                   Phone
                 </button>
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={channel === "email"}
-                  className={`auth-tab ${channel === "email" ? "active" : ""}`}
+                  className={`filter-pill ${channel === "email" ? "is-active" : ""}`}
                   onClick={() => setChannel("email")}
                 >
                   Email
                 </button>
               </div>
 
-              <div className="field">
+              <div className="field" style={{ marginBottom: 20 }}>
                 <label className="field-label">
-                  {channel === "sms" ? "Phone number" : "Email address"}
+                  {channel === "sms" ? "PHONE NUMBER" : "EMAIL ADDRESS"}
                 </label>
                 <input
+                  className="field-input"
                   type={channel === "sms" ? "tel" : "email"}
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={
-                    channel === "sms" ? "+16085551234" : "you@example.com"
-                  }
+                  placeholder={channel === "sms" ? "+16085551234" : "you@example.com"}
                   required
                   autoFocus
                 />
-                <div className="help">
+                <div className="field-hint">
                   {channel === "sms"
                     ? "Use E.164 format with country code (e.g. +1 for US)."
                     : "We'll send the code to this address."}
@@ -142,30 +133,30 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="pill rose" style={{ marginBottom: 16 }}>
+                <div className="warning-banner" style={{ marginBottom: 16 }}>
+                  <span className="warning-banner-icon" aria-hidden>⚠</span>
                   {error}
                 </div>
               )}
 
               <button
                 type="submit"
-                className="btn btn-primary btn-block"
+                className="btn btn-primary"
+                style={{ width: "100%" }}
                 disabled={busy || !identifier.trim()}
               >
-                {busy && <span className="spinner" />}
                 {busy ? "Sending code..." : "Send verification code"}
               </button>
 
-              <div className="divider-or">or</div>
-              <p className="fineprint">
+              <p style={{ marginTop: 20, fontSize: 12, color: "var(--muted)" }}>
                 Demo build — share the verification code with anyone you grant access.
                 Real SMS / email delivery is wired by setting the Twilio adapter env vars.
               </p>
             </form>
           ) : (
             <form onSubmit={verifyCode}>
-              <div className="cluster" style={{ marginBottom: 16 }}>
-                <span className="pill green dot">Code sent</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                <span className="status-pill is-active">Code sent</span>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -179,9 +170,10 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <div className="field">
-                <label className="field-label">Verification code</label>
+              <div className="field" style={{ marginBottom: 20 }}>
+                <label className="field-label">VERIFICATION CODE</label>
                 <input
+                  className="field-input"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -192,14 +184,15 @@ export default function LoginPage() {
                   autoFocus
                   maxLength={6}
                 />
-                <div className="help">
+                <div className="field-hint">
                   Six digits. Demo access uses a shared code shared verbally by the host.
                 </div>
               </div>
 
-              <div className="field">
-                <label className="field-label">Display name (first sign-in only)</label>
+              <div className="field" style={{ marginBottom: 20 }}>
+                <label className="field-label">DISPLAY NAME (FIRST SIGN-IN ONLY)</label>
                 <input
+                  className="field-input"
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -208,21 +201,22 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="pill rose" style={{ marginBottom: 16 }}>
+                <div className="warning-banner" style={{ marginBottom: 16 }}>
+                  <span className="warning-banner-icon" aria-hidden>⚠</span>
                   {error}
                 </div>
               )}
 
               <button
                 type="submit"
-                className="btn btn-primary btn-block"
+                className="btn btn-primary"
+                style={{ width: "100%" }}
                 disabled={busy || !code}
               >
-                {busy && <span className="spinner" />}
                 {busy ? "Verifying..." : "Verify & sign in"}
               </button>
 
-              <p className="fineprint">
+              <p style={{ marginTop: 20, fontSize: 12, color: "var(--muted)" }}>
                 By signing in you agree to Freshify&apos;s terms of service.
               </p>
             </form>
