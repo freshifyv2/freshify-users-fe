@@ -1,10 +1,23 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
-import Link from "next/link";
-import LogoutButton from "./LogoutButton";
+import { Chrome } from "@/lib/Chrome";
 
 export const dynamic = "force-dynamic";
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+}
+
+function handleFromEmail(email: string): string {
+  if (!email) return "user";
+  if (email.startsWith("+")) return email.replace(/[^0-9]/g, "");
+  return email.split("@")[0] || email;
+}
 
 export default function AccountPage() {
   const token = readSessionToken();
@@ -13,69 +26,104 @@ export default function AccountPage() {
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
 
+  const displayName = claims.displayName || "User";
+  const handle = handleFromEmail(claims.email);
+  const sessionExp = claims.exp ? new Date(claims.exp * 1000) : null;
+  const daysLeft = sessionExp
+    ? Math.max(0, Math.round((sessionExp.getTime() - Date.now()) / 86400000))
+    : null;
+
   return (
-    <>
-      <nav className="nav">
-        <div className="nav-inner">
-          <div className="brand">Sovereign Portal</div>
-          <div className="nav-links">
-            <Link href="/dashboard" className="nav-link">Dashboard</Link>
-            <Link href="/dashboard/companies" className="nav-link">Companies</Link>
-            <Link href="/dashboard/workspaces" className="nav-link">Workspaces</Link>
-            <Link href="/dashboard/users/account" className="nav-link active">Account</Link>
-          </div>
+    <Chrome
+      active="account"
+      pageTitle="Account"
+      user={{ userId: claims.userId, displayName, handle }}
+      activeCompany={claims.companyName ? { name: claims.companyName } : null}
+    >
+      <div className="breadcrumb">
+        <Link href="/dashboard">Dashboard</Link>
+        <span className="sep">›</span>
+        <span className="current">Account</span>
+      </div>
+
+      <div className="page-header">
+        <div className="page-header-left">
+          <h1>Your account</h1>
+          <div className="sub">Profile, memberships, and session controls.</div>
         </div>
-      </nav>
+      </div>
 
-      <div className="container">
-        <div className="stack" style={{ gap: 24 }}>
-          <div className="between">
-            <div>
-              <div className="kicker">Account</div>
-              <h1 style={{ marginTop: 8 }}>{claims.displayName || "Your account"}</h1>
+      <div className="row-account">
+        <div className="account-main">
+          <div className="profile-card">
+            <div className="profile-avatar profile-avatar-lg">{initials(displayName)}</div>
+            <div className="profile-info">
+              <div className="profile-name-row">
+                <h2>{displayName}</h2>
+                <span className="pill violet">
+                  <span className="dot" /> {claims.roles?.[0]?.role || "member"}
+                </span>
+              </div>
+              <div className="profile-handle">@{handle}</div>
+              <div className="profile-meta">
+                <span>{claims.email}</span>
+                <span>·</span>
+                <span><code>{claims.userId}</code></span>
+              </div>
             </div>
-            <LogoutButton />
+            <div className="profile-actions">
+              <button className="btn btn-ghost btn-sm" type="button" disabled>Edit photo</button>
+            </div>
           </div>
 
+          <div className="kicker">Associated company</div>
           <div className="card">
-            <h2 style={{ marginBottom: 16 }}>Profile</h2>
-            <table>
-              <tbody>
-                <tr>
-                  <th style={{ width: 200 }}>User ID</th>
-                  <td><code style={{ fontSize: 13 }}>{claims.userId}</code></td>
-                </tr>
-                <tr>
-                  <th>Email / phone</th>
-                  <td>{claims.email}</td>
-                </tr>
-                <tr>
-                  <th>Display name</th>
-                  <td>{claims.displayName || "—"}</td>
-                </tr>
-                <tr>
-                  <th>Active company</th>
-                  <td>{claims.companyName || claims.companyId || "—"}</td>
-                </tr>
-                <tr>
-                  <th>Active workspace</th>
-                  <td>{claims.workspaceName || claims.workspaceId || "—"}</td>
-                </tr>
-                <tr>
-                  <th>Session expires</th>
-                  <td>{claims.exp ? new Date(claims.exp * 1000).toLocaleString() : "—"}</td>
-                </tr>
-              </tbody>
-            </table>
+            {claims.companyId ? (
+              <div className="associated-row">
+                <div className="row-avatar">{initials(claims.companyName || claims.companyId)}</div>
+                <div className="associated-info">
+                  <div className="associated-name">{claims.companyName || "—"}</div>
+                  <div className="associated-sub">
+                    <code>{claims.companyId}</code>
+                  </div>
+                </div>
+                <span className="pill green"><span className="dot" /> Active</span>
+                <Link href={`/dashboard/companies/${claims.companyId}`} className="btn btn-ghost btn-sm">
+                  Open →
+                </Link>
+              </div>
+            ) : (
+              <div className="muted">No active company in this session.</div>
+            )}
           </div>
 
+          <div className="kicker">Associated workspaces</div>
+          <div className="row-3">
+            {claims.workspaceId ? (
+              <div className="workspace-tile">
+                <div className="workspace-tile-icon" aria-hidden>◉</div>
+                <div className="workspace-tile-name">{claims.workspaceName || "Workspace"}</div>
+                <div className="workspace-tile-sub">
+                  <code>{claims.workspaceId}</code>
+                </div>
+                <Link
+                  href={`/dashboard/workspaces/${claims.workspaceId}`}
+                  className="btn btn-ghost btn-sm btn-block"
+                >
+                  Open
+                </Link>
+              </div>
+            ) : (
+              <div className="workspace-tile workspace-tile-empty">
+                <div className="muted">No active workspace.</div>
+              </div>
+            )}
+          </div>
+
+          <div className="kicker">Role assignments</div>
           <div className="card">
-            <h2 style={{ marginBottom: 8 }}>Roles</h2>
-            <p className="muted" style={{ fontSize: 13, marginBottom: 16 }}>
-              Assignments across the User / Company / Workspace / Module layers.
-            </p>
             {claims.roles && claims.roles.length > 0 ? (
-              <table>
+              <table className="table">
                 <thead>
                   <tr>
                     <th>Layer</th>
@@ -86,7 +134,7 @@ export default function AccountPage() {
                 <tbody>
                   {claims.roles.map((r, i) => (
                     <tr key={i}>
-                      <td><span className="pill">{r.layer}</span></td>
+                      <td><span className="pill violet">{r.layer}</span></td>
                       <td><code style={{ fontSize: 12 }}>{r.scopeId || "—"}</code></td>
                       <td>{r.role}</td>
                     </tr>
@@ -98,7 +146,55 @@ export default function AccountPage() {
             )}
           </div>
         </div>
+
+        <aside className="account-rail">
+          <div className="kicker">System controls</div>
+          <div className="card stack-tight">
+            <button className="rail-btn" type="button" disabled>
+              <span aria-hidden>◐</span> Edit profile
+            </button>
+            <button className="rail-btn" type="button" disabled>
+              <span aria-hidden>◔</span> Notification settings
+            </button>
+            <button className="rail-btn" type="button" disabled>
+              <span aria-hidden>◇</span> Privacy policy
+            </button>
+          </div>
+
+          <div className="kicker">Session</div>
+          <div className="card stack-tight">
+            <div className="kv-row">
+              <span className="muted">Expires</span>
+              <span>{sessionExp ? sessionExp.toLocaleDateString() : "—"}</span>
+            </div>
+            <div className="kv-row">
+              <span className="muted">Days remaining</span>
+              <span>{daysLeft !== null ? `${daysLeft} day${daysLeft === 1 ? "" : "s"}` : "—"}</span>
+            </div>
+            <form action="/api/logout" method="post">
+              <button type="submit" className="btn btn-ghost btn-block">Sign out</button>
+            </form>
+          </div>
+
+          <div className="kicker">Danger zone</div>
+          <div className="danger-zone">
+            <div className="danger-row">
+              <div>
+                <div className="danger-title">Deactivate account</div>
+                <div className="danger-sub">Temporarily disable. You can reactivate later.</div>
+              </div>
+              <button className="btn btn-danger btn-sm" type="button" disabled>Deactivate</button>
+            </div>
+            <div className="danger-row">
+              <div>
+                <div className="danger-title">Delete account</div>
+                <div className="danger-sub">Permanent. All sovereign data is removed.</div>
+              </div>
+              <button className="btn btn-danger btn-sm" type="button" disabled>Delete</button>
+            </div>
+          </div>
+        </aside>
       </div>
-    </>
+    </Chrome>
   );
 }

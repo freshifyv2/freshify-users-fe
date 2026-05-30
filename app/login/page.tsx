@@ -15,7 +15,6 @@ export default function LoginPage() {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [hint, setHint] = useState<string | null>(null);
 
   async function requestCode(e: React.FormEvent) {
     e.preventDefault();
@@ -32,11 +31,6 @@ export default function LoginPage() {
         throw new Error(j.error || `request failed (${res.status})`);
       }
       setStep("code");
-      setHint(
-        channel === "sms"
-          ? "Twilio is disabled in this build — the code was written to the Cloud Run log for freshify-users. Paste it here."
-          : "Check your inbox (or the freshify-users Cloud Run log if email isn't wired yet)."
-      );
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -73,114 +67,168 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 440, paddingTop: 80 }}>
-      <div className="stack" style={{ gap: 24 }}>
-        <div>
-          <div className="kicker">Sovereign Portal</div>
-          <h1 style={{ marginTop: 8 }}>Sign in</h1>
-          <p className="muted" style={{ marginTop: 8 }}>
-            Phone or email — we&apos;ll send you a code.
+    <div className="auth-split">
+      <aside className="auth-brand">
+        <div className="auth-brand-content">
+          <div className="auth-brand-mark">
+            <span className="auth-brand-mark-glyph" aria-hidden />
+            Sovereign Portal
+          </div>
+          <h1>The sovereign foundation, working out of the box.</h1>
+          <p className="lede">
+            Users, Companies, and Workspaces as first-class sovereign modules — the
+            same architecture you license, the same software you build on.
           </p>
+          <ul className="auth-bullets">
+            <li>Pluggable auth — Twilio, Auth0, Okta, Cognito, Clerk</li>
+            <li>Standard Module Interface v0.1, with conformance you can verify</li>
+            <li>Independently deployed FE / BE pairs composed by a shell</li>
+            <li>No hosted SaaS. Always self-hosted on your cloud.</li>
+          </ul>
         </div>
+      </aside>
 
-        <div className="card">
+      <main className="auth-form-pane">
+        <div className="auth-form-card">
+          <h2>Sign in</h2>
+          <p className="sub">
+            {step === "identifier"
+              ? "Phone or email — we'll send you a verification code."
+              : `Code sent to ${identifier}`}
+          </p>
+
           {step === "identifier" ? (
-            <form onSubmit={requestCode} className="stack">
-              <div className="row" style={{ gap: 8 }}>
+            <form onSubmit={requestCode}>
+              <div className="auth-tabs" role="tablist">
                 <button
                   type="button"
-                  className={channel === "sms" ? "primary" : "ghost"}
+                  role="tab"
+                  aria-selected={channel === "sms"}
+                  className={`auth-tab ${channel === "sms" ? "active" : ""}`}
                   onClick={() => setChannel("sms")}
-                  style={{ flex: 1 }}
                 >
                   Phone
                 </button>
                 <button
                   type="button"
-                  className={channel === "email" ? "primary" : "ghost"}
+                  role="tab"
+                  aria-selected={channel === "email"}
+                  className={`auth-tab ${channel === "email" ? "active" : ""}`}
                   onClick={() => setChannel("email")}
-                  style={{ flex: 1 }}
                 >
                   Email
                 </button>
               </div>
 
-              <div>
-                <label className="label">
-                  {channel === "sms" ? "Phone (E.164, e.g. +16085551234)" : "Email"}
+              <div className="field">
+                <label className="field-label">
+                  {channel === "sms" ? "Phone number" : "Email address"}
                 </label>
                 <input
                   type={channel === "sms" ? "tel" : "email"}
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={channel === "sms" ? "+16085551234" : "you@example.com"}
+                  placeholder={
+                    channel === "sms" ? "+16085551234" : "you@example.com"
+                  }
                   required
                   autoFocus
                 />
+                <div className="help">
+                  {channel === "sms"
+                    ? "Use E.164 format with country code (e.g. +1 for US)."
+                    : "We'll send the code to this address."}
+                </div>
               </div>
 
-              {error && <div className="error">{error}</div>}
+              {error && (
+                <div className="pill rose" style={{ marginBottom: 16 }}>
+                  {error}
+                </div>
+              )}
 
-              <button type="submit" className="primary" disabled={busy || !identifier}>
-                {busy ? "Sending..." : "Send code"}
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={busy || !identifier.trim()}
+              >
+                {busy && <span className="spinner" />}
+                {busy ? "Sending code..." : "Send verification code"}
               </button>
+
+              <div className="divider-or">or</div>
+              <p className="fineprint">
+                Demo build — share the verification code with anyone you grant access.
+                Real SMS / email delivery is wired by setting the Twilio adapter env vars.
+              </p>
             </form>
           ) : (
-            <form onSubmit={verifyCode} className="stack">
-              <div className="muted" style={{ fontSize: 14 }}>
-                Sent to <strong style={{ color: "var(--fg)" }}>{identifier}</strong>{" "}
+            <form onSubmit={verifyCode}>
+              <div className="cluster" style={{ marginBottom: 16 }}>
+                <span className="pill green dot">Code sent</span>
                 <button
                   type="button"
-                  className="ghost"
-                  style={{ padding: "4px 10px", fontSize: 12, marginLeft: 8 }}
+                  className="btn btn-ghost btn-sm"
                   onClick={() => {
                     setStep("identifier");
                     setCode("");
                     setError(null);
-                    setHint(null);
                   }}
                 >
-                  Change
+                  ← Change
                 </button>
               </div>
 
-              <div>
-                <label className="label">Verification code</label>
+              <div className="field">
+                <label className="field-label">Verification code</label>
                 <input
                   type="text"
                   inputMode="numeric"
+                  pattern="[0-9]*"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="123456"
                   required
                   autoFocus
+                  maxLength={6}
                 />
+                <div className="help">
+                  Six digits. Demo access uses a shared code shared verbally by the host.
+                </div>
               </div>
 
-              <div>
-                <label className="label">Display name (first-time only)</label>
+              <div className="field">
+                <label className="field-label">Display name (first sign-in only)</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="optional"
+                  placeholder="Optional — how should we greet you?"
                 />
               </div>
 
-              {hint && <div className="muted" style={{ fontSize: 13 }}>{hint}</div>}
-              {error && <div className="error">{error}</div>}
+              {error && (
+                <div className="pill rose" style={{ marginBottom: 16 }}>
+                  {error}
+                </div>
+              )}
 
-              <button type="submit" className="primary" disabled={busy || !code}>
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={busy || !code}
+              >
+                {busy && <span className="spinner" />}
                 {busy ? "Verifying..." : "Verify & sign in"}
               </button>
+
+              <p className="fineprint">
+                By signing in you agree to Freshify&apos;s terms of service.
+              </p>
             </form>
           )}
         </div>
-
-        <div className="muted" style={{ fontSize: 12, textAlign: "center" }}>
-          By signing in you agree to Freshify&apos;s terms.
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
