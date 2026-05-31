@@ -3,8 +3,27 @@ import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { Chrome } from "@/lib/Chrome";
+import { getUsers } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
+
+interface MeMembershipsResponse {
+  companies: Array<{ companyId: string; name: string; role: "admin" | "member" }>;
+  workspaces: Array<{
+    workspaceId: string;
+    name: string;
+    companyId: string;
+    role: "admin" | "member";
+  }>;
+}
+
+async function fetchMyMemberships(token: string): Promise<MeMembershipsResponse> {
+  try {
+    return await getUsers<MeMembershipsResponse>("/v1/me/memberships", token);
+  } catch {
+    return { companies: [], workspaces: [] };
+  }
+}
 
 function handleFromEmail(email: string): string {
   if (!email) return "user";
@@ -16,13 +35,14 @@ interface AccountPageProps {
   searchParams?: { tab?: string };
 }
 
-export default function AccountPage({ searchParams }: AccountPageProps) {
+export default async function AccountPage({ searchParams }: AccountPageProps) {
   const token = readSessionToken();
   if (!token) redirect("/login");
 
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
 
+  const memberships = await fetchMyMemberships(token);
   const tab = searchParams?.tab === "settings" ? "settings" : "profile";
   const displayName = claims.displayName || "User";
   const handle = handleFromEmail(claims.email);
@@ -118,64 +138,71 @@ export default function AccountPage({ searchParams }: AccountPageProps) {
             </div>
           </div>
 
-          {/* Assigned Company card */}
+          {/* Assigned Companies card — driven by Companies BE membership lookup */}
           <div className="section-card">
             <div className="section-card-header">
               <span className="section-card-icon" aria-hidden>◇</span>
-              <h3 className="section-card-title">Assigned Company</h3>
+              <h3 className="section-card-title">Assigned Companies</h3>
+              {memberships.companies.length > 0 && (
+                <span className="section-card-count">{memberships.companies.length}</span>
+              )}
             </div>
-            {claims.companyId ? (
-              <>
-                <div className="assignment-row">
-                  <div className="assignment-row-info">
-                    <h4 className="assignment-row-name">
-                      {claims.companyName || claims.companyId}
-                      <span className="primary-badge">PRIMARY ASSIGNMENT</span>
-                    </h4>
-                    <span className="assignment-row-sub">Role: {claims.roles?.find((r: any) => r.layer === "company")?.role || "member"}</span>
+            {memberships.companies.length > 0 ? (
+              memberships.companies.map((c, idx) => {
+                const isPrimary = c.companyId === claims.companyId || (!claims.companyId && idx === 0);
+                return (
+                  <div key={c.companyId} className="assignment-row">
+                    <div className="assignment-row-info">
+                      <h4 className="assignment-row-name">
+                        {c.name || c.companyId}
+                        {isPrimary && <span className="primary-badge">PRIMARY</span>}
+                      </h4>
+                      <span className="assignment-row-sub">Role: {c.role}</span>
+                    </div>
+                    <Link href={`/dashboard/companies/${c.companyId}`} className="btn btn-secondary btn-sm">
+                      Open →
+                    </Link>
                   </div>
-                  <Link href={`/dashboard/companies/${claims.companyId}`} className="btn btn-secondary btn-sm">
-                    Open →
-                  </Link>
-                </div>
-                {claims.roles?.find((r: any) => r.layer === "company")?.role !== "admin" && (
-                  <div className="warning-banner">
-                    <span className="warning-banner-icon" aria-hidden>⚠</span>
-                    Admin permission required to change company assignment.
-                  </div>
-                )}
-              </>
+                );
+              })
+            ) : isOperator ? (
+              <div className="muted">
+                Operators see all companies across tenants in the Companies module — no direct company memberships required.
+              </div>
             ) : (
-              <div className="muted">No active company in this session.</div>
+              <div className="muted">No company memberships found.</div>
             )}
           </div>
 
-          {/* Assigned Workspaces card */}
+          {/* Assigned Workspaces card — driven by Workspaces BE membership lookup */}
           <div className="section-card">
             <div className="section-card-header">
               <span className="section-card-icon" aria-hidden>◉</span>
               <h3 className="section-card-title">Assigned Workspaces</h3>
+              {memberships.workspaces.length > 0 && (
+                <span className="section-card-count">{memberships.workspaces.length}</span>
+              )}
             </div>
-            {claims.workspaceId ? (
-              <>
-                <div className="assignment-row">
+            {memberships.workspaces.length > 0 ? (
+              memberships.workspaces.map((w) => (
+                <div key={w.workspaceId} className="assignment-row">
                   <div className="assignment-row-info">
-                    <h4 className="assignment-row-name">{claims.workspaceName || claims.workspaceId}</h4>
-                    <span className="assignment-row-sub">Active workspace · Role: {claims.roles?.find((r: any) => r.layer === "workspace")?.role || "member"}</span>
+                    <h4 className="assignment-row-name">{w.name || w.workspaceId}</h4>
+                    <span className="assignment-row-sub">
+                      Company: {w.companyId} · Role: {w.role}
+                    </span>
                   </div>
-                  <Link href={`/dashboard/workspaces/${claims.workspaceId}`} className="btn btn-secondary btn-sm">
+                  <Link href={`/dashboard/workspaces/${w.workspaceId}`} className="btn btn-secondary btn-sm">
                     Open →
                   </Link>
                 </div>
-                {claims.roles?.find((r: any) => r.layer === "workspace")?.role !== "admin" && (
-                  <div className="warning-banner">
-                    <span className="warning-banner-icon" aria-hidden>⚠</span>
-                    Admin permission required to edit workspace assignments.
-                  </div>
-                )}
-              </>
+              ))
+            ) : isOperator ? (
+              <div className="muted">
+                Operators see all workspaces across tenants in the Workspaces module — no direct workspace memberships required.
+              </div>
             ) : (
-              <div className="muted">No active workspace in this session.</div>
+              <div className="muted">No workspace memberships found.</div>
             )}
           </div>
         </>
