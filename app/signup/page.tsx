@@ -620,4 +620,4 @@ export default function SignupPage() {
 }
 
 // Re-export step label constant for type safety (unused at runtime, helps tree shake)
-export const _STEPS = STEPS;
+
