@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Step = "identifier" | "code";
 type Channel = "sms" | "email";
@@ -132,6 +133,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Magic code demo hint */}
+              <div className="info-banner" style={{ marginBottom: 16 }}>
+                <span aria-hidden>💡</span>
+                Demo mode — magic code is <strong>424242</strong>
+              </div>
+
               {error && (
                 <div className="warning-banner" style={{ marginBottom: 16 }}>
                   <span className="warning-banner-icon" aria-hidden>⚠</span>
@@ -151,6 +158,11 @@ export default function LoginPage() {
               <p style={{ marginTop: 20, fontSize: 12, color: "var(--muted)" }}>
                 Demo build — share the verification code with anyone you grant access.
                 Real SMS / email delivery is wired by setting the Twilio adapter env vars.
+              </p>
+
+              <p style={{ marginTop: 12, fontSize: 13, textAlign: "center" }}>
+                New here?{" "}
+                <Link href="/signup">Create an account →</Link>
               </p>
             </form>
           ) : (
@@ -218,6 +230,10 @@ export default function LoginPage() {
 
               <p style={{ marginTop: 20, fontSize: 12, color: "var(--muted)" }}>
                 By signing in you agree to Freshify&apos;s terms of service.
+              </p>
+
+              <p style={{ marginTop: 12, fontSize: 13, textAlign: "center" }}>
+                <Link href="/reset">Forgot password? Reset →</Link>
               </p>
             </form>
           )}
