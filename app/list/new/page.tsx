@@ -9,6 +9,7 @@ import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { Chrome } from "@/lib/Chrome";
+import { loadChromeContext } from "@/lib/chromeContext";
 import NewUserForm from "./NewUserForm";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ function handleFromEmail(email?: string | null): string {
   return email.split("@")[0] || email;
 }
 
-export default function NewUserPage() {
+export default async function NewUserPage() {
   const token = readSessionToken();
   if (!token) redirect("/login");
   const claims = decodeJwt(token);

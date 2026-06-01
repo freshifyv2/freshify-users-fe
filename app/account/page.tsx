@@ -3,6 +3,7 @@ import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { Chrome } from "@/lib/Chrome";
+import { loadChromeContext } from "@/lib/chromeContext";
 import { getUsers } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
