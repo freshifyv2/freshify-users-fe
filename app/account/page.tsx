@@ -32,39 +32,152 @@ function handleFromEmail(email: string): string {
   return email.split("@")[0] || email;
 }
 
-interface AccountPageProps {
-  searchParams?: { tab?: string };
-}
+// Inline SVG icons for controls rows
+const IconEdit = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
 
-export default async function AccountPage({ searchParams }: AccountPageProps) {
+const IconBell = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 6 2 7H4c.5-1 2-3 2-7z" />
+    <path d="M10 19a2 2 0 0 0 4 0" />
+  </svg>
+);
+
+const IconShield = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+const IconDeactivate = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M4.93 4.93l14.14 14.14" />
+  </svg>
+);
+
+const IconTrash = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+  </svg>
+);
+
+const IconChevronRight = (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+
+const IconBuilding = (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 21V8a1 1 0 0 1 1-1h7v14" />
+    <path d="M11 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17" />
+    <path d="M6 11h2M6 14h2M6 17h2M15 7h2M15 10h2M15 13h2M15 16h2" />
+  </svg>
+);
+
+const IconWorkspace = (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="14" rx="2" />
+    <path d="M3 9h18M8 18v3M16 18v3M6 21h12" />
+  </svg>
+);
+
+// Hardcoded join-workspaces data (UAM02)
+const JOIN_WORKSPACES = [
+  { id: "ew", name: "Eastern Hub", tag: "Distribution", members: 24, requested: true },
+  { id: "ml", name: "Midwest Logistics Hub", tag: "Hub", members: 18, requested: false },
+  { id: "sn", name: "Southern Network", tag: "Retail", members: 31, requested: false },
+  { id: "po", name: "Pacific Ops", tag: "Warehouse", members: 12, requested: false },
+];
+
+export default async function AccountPage() {
   const token = readSessionToken();
   if (!token) redirect("/login");
 
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
 
-  const memberships = await fetchMyMemberships(token);
-  const tab = searchParams?.tab === "settings" ? "settings" : "profile";
+  const [chromeCtx, memberships] = await Promise.all([
+    loadChromeContext(),
+    fetchMyMemberships(token),
+  ]);
+
+  if (!chromeCtx) redirect("/login");
+
   const displayName = claims.displayName || "User";
   const handle = handleFromEmail(claims.email);
   const isOperator = Boolean(claims.operator);
-  const status = "Active"; // Could derive from claims.status if available
   const title = isOperator ? "Operator" : (claims.roles?.[0]?.role || "Member");
-
   const firstName = displayName.split(/\s+/)[0] || "";
   const lastName = displayName.split(/\s+/).slice(1).join(" ");
+
+  // Primary company
+  const primaryCompany =
+    memberships.companies.find((c) => c.companyId === claims.companyId) ||
+    memberships.companies[0] ||
+    null;
+
+  // Show up to 3 workspaces in grid
+  const displayWorkspaces = memberships.workspaces.slice(0, 3);
 
   return (
     <Chrome
       active="account"
-      pageTitle="User Detail"
+      pageTitle="My Account"
       user={{ userId: claims.userId, displayName, handle, isOperator }}
       activeCompany={claims.companyName ? { name: claims.companyName } : null}
+      tenantOptions={chromeCtx.tenantOptions}
     >
-      {/* HERO CARD — RAS URM02 pattern */}
-      <div className="hero-card">
+      {/* === JOIN WORKSPACES MODAL (UAM02) === */}
+      <input type="checkbox" id="join-workspaces-modal" className="modal-toggle" aria-hidden />
+      <label htmlFor="join-workspaces-modal" className="modal-backdrop" aria-hidden />
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="jw-title">
+        <h2 className="modal-header-title" id="jw-title">JOIN WORKSPACES</h2>
+        <p className="modal-header-sub" style={{ marginBottom: 8 }}>All workspaces</p>
+        <div>
+          {JOIN_WORKSPACES.map((ws) => (
+            <div key={ws.id} className={`join-ws-row${ws.requested ? " is-requested" : ""}`}>
+              <div className="join-ws-icon" aria-hidden>{IconWorkspace}</div>
+              <div className="join-ws-info">
+                <p className="join-ws-name">{ws.name}</p>
+                <div className="join-ws-meta">
+                  <span className="pill">{ws.tag}</span>
+                  <span className="muted" style={{ fontSize: 12 }}>{ws.members} members</span>
+                </div>
+              </div>
+              {ws.requested ? (
+                <button type="button" className="btn btn-secondary btn-sm" disabled>
+                  Requested ✓
+                </button>
+              ) : (
+                <button type="button" className="btn btn-primary btn-sm" disabled>
+                  Send Request
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="modal-actions">
+          <label htmlFor="join-workspaces-modal" className="btn btn-ghost">Close</label>
+        </div>
+      </div>
+
+      {/* === HERO CARD (UAM01) === */}
+      <div className="hero-card" style={{ marginBottom: 28 }}>
         <div className="hero-card-left">
-          <span className="avatar-circle is-lg" aria-hidden style={{ background: "var(--violet-soft)", color: "var(--violet)" }}>
+          <span
+            className="avatar-circle is-lg"
+            aria-hidden
+            style={{ background: "var(--violet-soft)", color: "var(--violet)" }}
+          >
             {(firstName[0] || "U").toUpperCase()}{(lastName[0] || "").toUpperCase()}
           </span>
           <div className="hero-card-text">
@@ -73,213 +186,133 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               {displayName}
               <span className="hero-card-handle">(@{handle})</span>
             </h1>
-            <p className="hero-card-subtitle">{title}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+              <span className="pill is-violet">{title}</span>
+            </div>
           </div>
         </div>
         <div className="hero-card-actions">
-          <button type="button" className="btn btn-primary" disabled>
-            Update User Profile
+          <button type="button" className="btn btn-secondary" disabled>
+            Edit Profile Photo
           </button>
         </div>
       </div>
 
-      {/* PROFILE / SETTINGS tabs (RAS) */}
-      <div className="detail-tabs">
-        <Link href="?tab=profile" className={`detail-tab ${tab === "profile" ? "is-active" : ""}`}>
-          PROFILE
-        </Link>
-        <Link href="?tab=settings" className={`detail-tab ${tab === "settings" ? "is-active" : ""}`}>
-          SETTINGS
-        </Link>
-      </div>
+      {/* === 2-COLUMN GRID === */}
+      <div className="account-grid">
+        {/* LEFT COLUMN */}
+        <div>
+          {/* ASSOCIATED COMPANY */}
+          <div className="section-label">
+            <span>Associated Company</span>
+          </div>
+          {primaryCompany ? (
+            <div className="company-row-card" style={{ marginBottom: 24 }}>
+              <div className="company-row-card-icon" aria-hidden>{IconBuilding}</div>
+              <div className="company-row-card-info">
+                <p className="company-row-card-name">{primaryCompany.name || primaryCompany.companyId}</p>
+                <span className="pill is-violet">Assigned</span>
+              </div>
+              <span className="company-row-card-badge">Super Admin</span>
+            </div>
+          ) : (
+            <div className="section-card" style={{ marginBottom: 24 }}>
+              <p className="muted" style={{ padding: "16px 20px" }}>
+                {isOperator
+                  ? "Operators see all companies in the Companies module."
+                  : "No company membership found."}
+              </p>
+            </div>
+          )}
 
-      {tab === "profile" ? (
-        <>
-          {/* Primary Information card */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <h3 className="section-card-title">Primary Information</h3>
-            </div>
-            <div className="field-grid">
-              <div className="field">
-                <label className="field-label">FIRST NAME</label>
-                <input className="field-input is-readonly" value={firstName} readOnly />
-              </div>
-              <div className="field">
-                <label className="field-label">LAST NAME</label>
-                <input className="field-input is-readonly" value={lastName} readOnly />
-              </div>
-              <div className="field">
-                <label className="field-label">USER HANDLE</label>
-                <input className="field-input is-readonly" value={`@${handle}`} readOnly />
-              </div>
-              <div className="field">
-                <label className="field-label">USER STATUS</label>
-                <select className="field-input field-select is-readonly" disabled>
-                  <option>Active</option>
-                </select>
-              </div>
-              <div className="field">
-                <label className="field-label">PHONE NO</label>
-                <input className="field-input is-readonly" value={claims.email?.startsWith("+") ? claims.email : ""} readOnly />
-              </div>
-              <div className="field">
-                <label className="field-label">EMAIL</label>
-                <input className="field-input is-readonly" value={claims.email || ""} readOnly />
-              </div>
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label className="field-label">TITLE</label>
-                <input className="field-input is-readonly" value={title} readOnly />
-              </div>
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label className="field-label">USER ID</label>
-                <input className="field-input is-readonly" value={claims.userId} readOnly />
-                <div className="field-hint">Sovereign module identifier — used in all cross-module references.</div>
-              </div>
-            </div>
+          {/* ASSOCIATED WORKSPACES */}
+          <div className="section-label">
+            <span>Associated Workspaces</span>
+            <label htmlFor="join-workspaces-modal" style={{ cursor: "pointer", color: "var(--violet)", fontWeight: 600, fontSize: 12 }}>
+              Join Workspaces →
+            </label>
           </div>
 
-          {/* Assigned Companies card — driven by Companies BE membership lookup */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <span className="section-card-icon" aria-hidden>◇</span>
-              <h3 className="section-card-title">Assigned Companies</h3>
-              {memberships.companies.length > 0 && (
-                <span className="section-card-count">{memberships.companies.length}</span>
-              )}
-            </div>
-            {memberships.companies.length > 0 ? (
-              memberships.companies.map((c, idx) => {
-                const isPrimary = c.companyId === claims.companyId || (!claims.companyId && idx === 0);
-                return (
-                  <div key={c.companyId} className="assignment-row">
-                    <div className="assignment-row-info">
-                      <h4 className="assignment-row-name">
-                        {c.name || c.companyId}
-                        {isPrimary && <span className="primary-badge">PRIMARY</span>}
-                      </h4>
-                      <span className="assignment-row-sub">Role: {c.role}</span>
-                    </div>
-                    <Link href={`/dashboard/companies/${c.companyId}`} className="btn btn-secondary btn-sm">
-                      Open →
-                    </Link>
-                  </div>
-                );
-              })
-            ) : isOperator ? (
-              <div className="muted">
-                Operators see all companies across tenants in the Companies module — no direct company memberships required.
-              </div>
-            ) : (
-              <div className="muted">No company memberships found.</div>
-            )}
-          </div>
-
-          {/* Assigned Workspaces card — driven by Workspaces BE membership lookup */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <span className="section-card-icon" aria-hidden>◉</span>
-              <h3 className="section-card-title">Assigned Workspaces</h3>
-              {memberships.workspaces.length > 0 && (
-                <span className="section-card-count">{memberships.workspaces.length}</span>
-              )}
-            </div>
-            {memberships.workspaces.length > 0 ? (
-              memberships.workspaces.map((w) => (
-                <div key={w.workspaceId} className="assignment-row">
-                  <div className="assignment-row-info">
-                    <h4 className="assignment-row-name">{w.name || w.workspaceId}</h4>
-                    <span className="assignment-row-sub">
-                      Company: {w.companyId} · Role: {w.role}
-                    </span>
-                  </div>
-                  <Link href={`/dashboard/workspaces/${w.workspaceId}`} className="btn btn-secondary btn-sm">
-                    Open →
-                  </Link>
+          {displayWorkspaces.length > 0 ? (
+            <div className="workspace-grid">
+              {displayWorkspaces.map((w) => (
+                <div key={w.workspaceId} className="workspace-card">
+                  <div className="workspace-card-icon" aria-hidden style={{ marginBottom: 4 }}>{IconWorkspace}</div>
+                  <p className="workspace-card-name">{w.name || w.workspaceId}</p>
+                  <span className="workspace-card-role">
+                    <span className="pill">{w.role}</span>
+                  </span>
                 </div>
-              ))
-            ) : isOperator ? (
-              <div className="muted">
-                Operators see all workspaces across tenants in the Workspaces module — no direct workspace memberships required.
+              ))}
+            </div>
+          ) : (
+            <div className="section-card">
+              <p className="muted" style={{ padding: "16px 20px" }}>
+                {isOperator
+                  ? "Operators see all workspaces in the Workspaces module."
+                  : "No workspace memberships found."}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div>
+          {/* SYSTEM CONTROLS */}
+          <div className="section-card" style={{ marginBottom: 16, padding: 0 }}>
+            <div className="section-card-header" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
+              <h3 className="section-card-title">System Controls</h3>
+            </div>
+            <Link href="/account/edit" className="controls-row">
+              <span className="controls-row-icon" aria-hidden>{IconEdit}</span>
+              <div className="controls-row-text">
+                <p className="controls-row-title">Edit Profile</p>
+                <p className="controls-row-sub">Update personal information</p>
               </div>
-            ) : (
-              <div className="muted">No workspace memberships found.</div>
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          {/* SETTINGS TAB */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <h3 className="section-card-title">Notification Settings</h3>
-            </div>
-            <div className="toggle-row">
-              <span className="toggle-row-label">Email Notifications</span>
-              <label className="toggle">
-                <input type="checkbox" defaultChecked disabled />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-            <div className="toggle-row">
-              <span className="toggle-row-label">SMS Notifications</span>
-              <label className="toggle">
-                <input type="checkbox" disabled />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-            <div className="toggle-row">
-              <span className="toggle-row-label">Push Notifications</span>
-              <label className="toggle">
-                <input type="checkbox" defaultChecked disabled />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
+              <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
+            </Link>
+            <Link href="/account/notifications" className="controls-row">
+              <span className="controls-row-icon" aria-hidden>{IconBell}</span>
+              <div className="controls-row-text">
+                <p className="controls-row-title">Notification Settings</p>
+                <p className="controls-row-sub">Email, SMS, and Push</p>
+              </div>
+              <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
+            </Link>
+            <a href="#" className="controls-row">
+              <span className="controls-row-icon" aria-hidden>{IconShield}</span>
+              <div className="controls-row-text">
+                <p className="controls-row-title">Privacy Policy</p>
+                <p className="controls-row-sub">Data usage guidelines</p>
+              </div>
+              <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
+            </a>
           </div>
 
-          <div className="section-card">
-            <div className="section-card-header">
-              <h3 className="section-card-title">Change Password</h3>
+          {/* DANGER ZONE */}
+          <div className="danger-card" style={{ padding: 0 }}>
+            <div className="section-card-header" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
+              <h3 className="section-card-title" style={{ color: "var(--red-text)" }}>Danger Zone</h3>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 240 }}>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Password reset via email</p>
-                <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--muted)" }}>You can request a password change through the email process. A reset link will be sent to your registered email.</p>
+            <Link href="/account/deactivate" className="controls-row">
+              <span className="controls-row-icon is-red" aria-hidden>{IconDeactivate}</span>
+              <div className="controls-row-text">
+                <p className="controls-row-title">Deactivate Account</p>
+                <p className="controls-row-sub">Temporarily disable profile</p>
               </div>
-              <button type="button" className="btn btn-primary" disabled>Send Password Reset Email</button>
-            </div>
-          </div>
-
-          <div className="section-card">
-            <div className="section-card-header">
-              <h3 className="section-card-title">Account Actions</h3>
-            </div>
-            <div className="action-row">
-              <span className="action-row-icon" aria-hidden>⊘</span>
-              <div className="action-row-text">
-                <p className="action-row-title">Deactivate Account</p>
-                <p className="action-row-sub">Temporarily disable profile</p>
+              <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
+            </Link>
+            <Link href="/account/delete" className="controls-row">
+              <span className="controls-row-icon is-red" aria-hidden>{IconTrash}</span>
+              <div className="controls-row-text">
+                <p className="controls-row-title">Delete Account</p>
+                <p className="controls-row-sub">Permanently remove all data</p>
               </div>
-            </div>
-            <div className="action-row">
-              <span className="action-row-icon" aria-hidden>✕</span>
-              <div className="action-row-text">
-                <p className="action-row-title">Delete Account</p>
-                <p className="action-row-sub">Permanently remove all data</p>
-              </div>
-            </div>
+              <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
+            </Link>
           </div>
-
-          <div className="section-card">
-            <div className="section-card-header">
-              <h3 className="section-card-title">Session</h3>
-            </div>
-            <form action="/api/logout" method="post">
-              <button type="submit" className="btn btn-secondary">Sign Out</button>
-            </form>
-          </div>
-        </>
-      )}
+        </div>
+      </div>
     </Chrome>
   );
 }
