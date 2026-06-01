@@ -2849,3 +2849,122 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
 }
+
+/* ─── URM02E / URM04 — Edit user + New user form additions ───────────────── */
+
+.field-hint.is-positive {
+  color: var(--green, #16a34a);
+}
+.field-hint.is-warn {
+  color: var(--amber, #b45309);
+}
+
+.section-card-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.page-header-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 680px;
+}
+
+/* Password row override — the URM04 password row sits inside a field, not
+   inside a row card, so we soften the background to match the field style. */
+.field .password-row {
+  background: var(--bg, #fff);
+  padding: 6px;
+}
+.field .password-row > .field-input {
+  flex: 1;
+}
+
+/* Photo dropzone (placeholder — upload wired in Stage 7) */
+.photo-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 36px 24px;
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-1, #fafafa);
+  color: var(--muted);
+  text-align: center;
+}
+.photo-dropzone-icon {
+  font-size: 22px;
+  color: var(--muted);
+}
+.photo-dropzone-text {
+  margin: 0;
+  font-weight: 500;
+  color: var(--fg);
+}
+.photo-dropzone-or {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Workspace multi-picker (URM04) */
+.workspace-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.workspace-picker-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-1, #fafafa);
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.workspace-picker-row:hover {
+  border-color: var(--violet, #6c47ff);
+}
+.workspace-picker-row.is-checked {
+  border-color: var(--violet, #6c47ff);
+  background: var(--violet-soft, #f3efff);
+}
+.workspace-picker-row input[type="checkbox"] {
+  accent-color: var(--violet, #6c47ff);
+}
+.workspace-picker-name {
+  font-weight: 500;
+  color: var(--fg);
+}
+.workspace-picker-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Link-styled button (Cancel and Discard) */
+.btn-link {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 6px 8px;
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 6px;
+}
+.btn-link:hover {
+  color: var(--fg);
+  background: var(--surface-2, #f3f4f6);
+}

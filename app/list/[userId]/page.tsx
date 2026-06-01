@@ -130,9 +130,12 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
           </div>
         </div>
         <div className="hero-card-actions">
-          <button type="button" className="btn btn-primary" disabled>
+          <Link
+            href={`/dashboard/users/list/${params.userId}/edit`}
+            className="btn btn-primary"
+          >
             Update User Profile
-          </button>
+          </Link>
         </div>
       </div>
 
