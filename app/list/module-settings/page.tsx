@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { Chrome } from "@/lib/Chrome";
+import { OperatorOnly403 } from "@/lib/OperatorOnly";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +40,22 @@ export default async function URMModuleSettingsPage() {
   if (!token) redirect("/login");
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
-  if (!claims.operator) redirect("/dashboard");
 
   const handle = (claims.email || "").startsWith("+")
     ? (claims.email || "").replace(/[^0-9]/g, "")
     : (claims.email || "").split("@")[0] || "operator";
+  const displayName = claims.displayName || claims.email || "Operator";
+  if (!claims.operator) {
+    return (
+      <OperatorOnly403
+        active="users"
+        pageTitle="Users — Module Settings"
+        user={{ userId: claims.userId, displayName, handle, isOperator: false }}
+        activeCompany={claims.companyName ? { name: claims.companyName } : null}
+        detail="Users module settings"
+      />
+    );
+  }
 
   return (
     <Chrome

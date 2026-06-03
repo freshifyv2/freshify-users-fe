@@ -14,6 +14,7 @@ import { decodeJwt } from "@/lib/jwt";
 import { getUsers } from "@/lib/api";
 import { Chrome } from "@/lib/Chrome";
 import { loadChromeContext } from "@/lib/chromeContext";
+import { OperatorOnly403 } from "@/lib/OperatorOnly";
 
 export const dynamic = "force-dynamic";
 
@@ -81,12 +82,21 @@ export default async function UsersListPage() {
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
 
-  // Operator gate — non-operators bounce back to dashboard
-  if (!claims.operator) redirect("/dashboard");
-
+  // Operator gate — non-operators see a 403 view (Deploy 5).
   const isOperator = Boolean(claims.operator);
   const displayName = claims.displayName || claims.email || "User";
   const handle = handleFromEmail(claims.email);
+  if (!isOperator) {
+    return (
+      <OperatorOnly403
+        active="users"
+        pageTitle="Users"
+        user={{ userId: claims.userId, displayName, handle, isOperator: false }}
+        activeCompany={claims.companyName ? { name: claims.companyName } : null}
+        detail="The cross-tenant user directory"
+      />
+    );
+  }
 
   let users: AdminUserRow[] = [];
   let error: string | null = null;

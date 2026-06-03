@@ -10,6 +10,7 @@ import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { Chrome } from "@/lib/Chrome";
+import { OperatorOnly403 } from "@/lib/OperatorOnly";
 import { getServiceJson, COMPANIES_URL, WORKSPACES_URL } from "@/lib/api";
 import NewUserForm from "./NewUserForm";
 
@@ -37,10 +38,20 @@ export default async function NewUserPage() {
   if (!token) redirect("/login");
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
-  if (!claims.operator) redirect("/dashboard");
 
   const displayName = claims.displayName || claims.email || "User";
   const handle = handleFromEmail(claims.email);
+  if (!claims.operator) {
+    return (
+      <OperatorOnly403
+        active="users"
+        pageTitle="New User"
+        user={{ userId: claims.userId, displayName, handle, isOperator: false }}
+        activeCompany={claims.companyName ? { name: claims.companyName } : null}
+        detail="Creating users"
+      />
+    );
+  }
 
   // Fetch directories in parallel; failure on either side just yields an empty
   // picker so the form still renders.
