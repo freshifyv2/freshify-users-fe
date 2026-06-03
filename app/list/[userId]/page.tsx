@@ -10,6 +10,7 @@ import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { getUsers } from "@/lib/api";
 import { Chrome } from "@/lib/Chrome";
+import { OperatorOnly403 } from "@/lib/OperatorOnly";
 import { loadChromeContext } from "@/lib/chromeContext";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,24 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
   if (!token) redirect("/login");
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
-  if (!claims.operator) redirect("/dashboard");
+  if (!claims.operator) {
+    return (
+      <OperatorOnly403
+        active="users"
+        pageTitle="User Detail"
+        user={{
+          userId: claims.userId,
+          displayName: claims.displayName || claims.email || "User",
+          handle: (claims.email || "").startsWith("+")
+            ? (claims.email || "").replace(/[^0-9]/g, "")
+            : (claims.email || "").split("@")[0] || "user",
+          isOperator: false,
+        }}
+        activeCompany={claims.companyName ? { name: claims.companyName } : null}
+        detail="User detail"
+      />
+    );
+  }
 
   const tab = searchParams?.tab === "settings" ? "settings" : "profile";
 

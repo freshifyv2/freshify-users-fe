@@ -11,6 +11,7 @@ import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { getUsers } from "@/lib/api";
 import { Chrome } from "@/lib/Chrome";
+import { OperatorOnly403 } from "@/lib/OperatorOnly";
 import EditUserForm from "./EditUserForm";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,24 @@ export default async function EditUserPage({ params }: PageProps) {
   if (!token) redirect("/login");
   const claims = decodeJwt(token);
   if (!claims) redirect("/login");
-  if (!claims.operator) redirect("/dashboard");
+  if (!claims.operator) {
+    return (
+      <OperatorOnly403
+        active="users"
+        pageTitle="Edit User"
+        user={{
+          userId: claims.userId,
+          displayName: claims.displayName || claims.email || "User",
+          handle: (claims.email || "").startsWith("+")
+            ? (claims.email || "").replace(/[^0-9]/g, "")
+            : (claims.email || "").split("@")[0] || "user",
+          isOperator: false,
+        }}
+        activeCompany={claims.companyName ? { name: claims.companyName } : null}
+        detail="Editing users"
+      />
+    );
+  }
 
   const viewerName = claims.displayName || claims.email || "User";
   const viewerHandle = handleFromEmail(claims.email);
