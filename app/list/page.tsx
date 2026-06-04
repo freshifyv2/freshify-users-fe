@@ -75,7 +75,26 @@ function statusLabel(status?: string | null): string {
   return "Active";
 }
 
-export default async function UsersListPage() {
+// Deploy 5.16 — filter pills + search wired via searchParams (server-side).
+type UsersFilter = "all" | "active" | "pending" | "inactive";
+function parseUsersFilter(v: string | string[] | undefined): UsersFilter {
+  const s = Array.isArray(v) ? v[0] : v;
+  if (s === "active" || s === "pending" || s === "inactive") return s;
+  return "all";
+}
+function parseQuery(v: string | string[] | undefined): string {
+  const s = Array.isArray(v) ? v[0] : v;
+  return (s ?? "").trim().slice(0, 80);
+}
+
+export default async function UsersListPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string; q?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const usersFilter = parseUsersFilter(sp.status);
+  const query = parseQuery(sp.q);
   const token = readSessionToken();
   if (!token) redirect("/login");
 
@@ -111,6 +130,34 @@ export default async function UsersListPage() {
   const active = users.filter((u) => (u.status || "active") === "active").length;
   const inactive = users.filter((u) => u.status === "inactive").length;
   const pending = users.filter((u) => u.status === "pending").length;
+
+  // Deploy 5.16 — apply filter + search server-side. Counts above stay
+  // anchored to the full dataset.
+  const qLower = query.toLowerCase();
+  const visibleUsers = users.filter((u) => {
+    const effStatus = u.status || "active";
+    if (usersFilter !== "all" && effStatus !== usersFilter) return false;
+    if (!qLower) return true;
+    const hay = [
+      u.displayName ?? "",
+      u.email,
+      u.phone ?? "",
+      u.title ?? "",
+      u.userId,
+      ...(u.assignedCompanies ?? []).map((c) => c.name),
+      ...(u.assignedWorkspaces ?? []).map((w) => w.name),
+    ]
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(qLower);
+  });
+  const buildHref = (filter: UsersFilter) => {
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("status", filter);
+    if (query) params.set("q", query);
+    const qs = params.toString();
+    return qs ? `/dashboard/users/list?${qs}` : "/dashboard/users/list";
+  };
 
   return (
     <Chrome
@@ -197,26 +244,67 @@ export default async function UsersListPage() {
       <div className="list-card">
         <div className="filter-bar">
           <div className="filter-pills">
-            <button type="button" className="filter-pill is-active">All</button>
-            <button type="button" className="filter-pill">Active</button>
-            <button type="button" className="filter-pill">Pending</button>
-            <button type="button" className="filter-pill">Inactive</button>
+            <Link
+              href={buildHref("all")}
+              className={`filter-pill ${usersFilter === "all" ? "is-active" : ""}`}
+            >
+              All ({total})
+            </Link>
+            <Link
+              href={buildHref("active")}
+              className={`filter-pill ${usersFilter === "active" ? "is-active" : ""}`}
+            >
+              Active ({active})
+            </Link>
+            <Link
+              href={buildHref("pending")}
+              className={`filter-pill ${usersFilter === "pending" ? "is-active" : ""}`}
+            >
+              Pending ({pending})
+            </Link>
+            <Link
+              href={buildHref("inactive")}
+              className={`filter-pill ${usersFilter === "inactive" ? "is-active" : ""}`}
+            >
+              Inactive ({inactive})
+            </Link>
           </div>
-          <div className="search-input-wrap">
+          <form method="GET" action="/dashboard/users/list" className="search-input-wrap">
+            {usersFilter !== "all" && (
+              <input type="hidden" name="status" value={usersFilter} />
+            )}
             <span className="search-input-icon" aria-hidden>⌕</span>
             <input
               className="search-input"
-              placeholder="search for name, title, company, workspace, phone..."
-              disabled
+              name="q"
+              defaultValue={query}
+              placeholder="Search by name, title, company, workspace, phone…"
+              autoComplete="off"
             />
-          </div>
-          <button type="button" className="filter-button" aria-label="Filter">⚙</button>
+            {query && (
+              <Link
+                href={buildHref(usersFilter)}
+                className="search-input-clear"
+                aria-label="Clear search"
+              >
+                ×
+              </Link>
+            )}
+          </form>
         </div>
 
         {users.length === 0 ? (
           <div className="list-card-empty">
             <p style={{ margin: "24px 0 8px", fontWeight: 600, color: "var(--fg)" }}>No users yet</p>
             <p style={{ margin: 0 }}>Invite a user to get started.</p>
+          </div>
+        ) : visibleUsers.length === 0 ? (
+          <div className="list-card-empty">
+            <p style={{ margin: "24px 0 8px", fontWeight: 600, color: "var(--fg)" }}>No users match these filters</p>
+            <p style={{ margin: 0 }}>
+              Try a different filter or{" "}
+              <Link href="/dashboard/users/list">clear filters</Link>.
+            </p>
           </div>
         ) : (
           <>
@@ -234,7 +322,7 @@ export default async function UsersListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => {
+                  {visibleUsers.map((u) => {
                     const uHandle = handleFromEmail(u.email);
                     const companies = u.assignedCompanies || [];
                     const workspaces = u.assignedWorkspaces || [];
@@ -278,9 +366,20 @@ export default async function UsersListPage() {
                         <td>
                           {firstCompany ? (
                             <span className="tag-cell">
-                              <span className="tag-chip">{firstCompany.name || firstCompany.companyId}</span>
+                              <Link
+                                href={`/dashboard/companies/${firstCompany.companyId}`}
+                                className="tag-chip is-link"
+                              >
+                                {firstCompany.name || firstCompany.companyId}
+                              </Link>
                               {overflowCompanies > 0 && (
-                                <span className="tag-chip-overflow">+{overflowCompanies}</span>
+                                <Link
+                                  href={`/dashboard/users/list/${u.userId}`}
+                                  className="tag-chip-overflow is-link"
+                                  title={`See all ${companies.length} companies`}
+                                >
+                                  +{overflowCompanies}
+                                </Link>
                               )}
                             </span>
                           ) : (
@@ -290,9 +389,20 @@ export default async function UsersListPage() {
                         <td>
                           {firstWs ? (
                             <span className="tag-cell">
-                              <span className="tag-chip">{firstWs.name}</span>
+                              <Link
+                                href={`/dashboard/workspaces/${firstWs.workspaceId}`}
+                                className="tag-chip is-link"
+                              >
+                                {firstWs.name}
+                              </Link>
                               {overflowWs > 0 && (
-                                <span className="tag-chip-overflow">+{overflowWs}</span>
+                                <Link
+                                  href={`/dashboard/users/list/${u.userId}`}
+                                  className="tag-chip-overflow is-link"
+                                  title={`See all ${workspaces.length} workspaces`}
+                                >
+                                  +{overflowWs}
+                                </Link>
                               )}
                             </span>
                           ) : (

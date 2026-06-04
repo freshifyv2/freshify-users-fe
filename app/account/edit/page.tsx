@@ -87,7 +87,7 @@ export default async function EditProfilePage() {
 
       {/* === BREADCRUMB + TOP ACTION ROW === */}
       <div className="breadcrumb">
-        <Link href="/account">Account</Link>
+        <Link href="/dashboard/users/account">Account</Link>
         <span className="breadcrumb-sep" aria-hidden>›</span>
         <span className="breadcrumb-current">Edit Profile</span>
       </div>

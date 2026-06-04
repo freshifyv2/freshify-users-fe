@@ -263,7 +263,7 @@ export default async function AccountPage() {
             <div className="section-card-header" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
               <h3 className="section-card-title">System Controls</h3>
             </div>
-            <Link href="/account/edit" className="controls-row">
+            <Link href="/dashboard/users/account/edit" className="controls-row">
               <span className="controls-row-icon" aria-hidden>{IconEdit}</span>
               <div className="controls-row-text">
                 <p className="controls-row-title">Edit Profile</p>
@@ -271,7 +271,7 @@ export default async function AccountPage() {
               </div>
               <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
             </Link>
-            <Link href="/account/notifications" className="controls-row">
+            <Link href="/dashboard/users/account/notifications" className="controls-row">
               <span className="controls-row-icon" aria-hidden>{IconBell}</span>
               <div className="controls-row-text">
                 <p className="controls-row-title">Notification Settings</p>
@@ -279,14 +279,22 @@ export default async function AccountPage() {
               </div>
               <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
             </Link>
-            <a href="#" className="controls-row">
+            <Link href="/dashboard/users/account/privacy" className="controls-row">
               <span className="controls-row-icon" aria-hidden>{IconShield}</span>
               <div className="controls-row-text">
                 <p className="controls-row-title">Privacy Policy</p>
-                <p className="controls-row-sub">Data usage guidelines</p>
+                <p className="controls-row-sub">How we handle your data</p>
               </div>
               <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
-            </a>
+            </Link>
+            <Link href="/dashboard/users/account/data-usage" className="controls-row">
+              <span className="controls-row-icon" aria-hidden>{IconShield}</span>
+              <div className="controls-row-text">
+                <p className="controls-row-title">Data Usage Guidelines</p>
+                <p className="controls-row-sub">What we collect and why</p>
+              </div>
+              <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
+            </Link>
           </div>
 
           {/* DANGER ZONE */}
@@ -294,7 +302,7 @@ export default async function AccountPage() {
             <div className="section-card-header" style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
               <h3 className="section-card-title" style={{ color: "var(--red-text)" }}>Danger Zone</h3>
             </div>
-            <Link href="/account/deactivate" className="controls-row">
+            <Link href="/dashboard/users/account/deactivate" className="controls-row">
               <span className="controls-row-icon is-red" aria-hidden>{IconDeactivate}</span>
               <div className="controls-row-text">
                 <p className="controls-row-title">Deactivate Account</p>
@@ -302,7 +310,7 @@ export default async function AccountPage() {
               </div>
               <span className="controls-row-chevron" aria-hidden>{IconChevronRight}</span>
             </Link>
-            <Link href="/account/delete" className="controls-row">
+            <Link href="/dashboard/users/account/delete" className="controls-row">
               <span className="controls-row-icon is-red" aria-hidden>{IconTrash}</span>
               <div className="controls-row-text">
                 <p className="controls-row-title">Delete Account</p>

@@ -67,7 +67,7 @@ export default async function DeleteAccountPage() {
     >
       {/* BREADCRUMB */}
       <div className="breadcrumb">
-        <Link href="/account">Account</Link>
+        <Link href="/dashboard/users/account">Account</Link>
         <span className="breadcrumb-sep" aria-hidden>›</span>
         <span className="breadcrumb-current">Delete Account</span>
       </div>
@@ -135,7 +135,7 @@ export default async function DeleteAccountPage() {
 
         {/* ACTIONS */}
         <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-          <Link href="/account" className="btn btn-secondary">
+          <Link href="/dashboard/users/account" className="btn btn-secondary">
             Cancel
           </Link>
           <button type="button" className="btn btn-primary" disabled>
