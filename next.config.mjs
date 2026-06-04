@@ -19,6 +19,19 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   assetPrefix: ASSET_PREFIX,
+  async redirects() {
+    // Legacy path: the Users module previously surfaced settings under
+    // /dashboard/users/list/module-settings. Module settings now live at
+    // /dashboard/users/settings. A 308 permanent redirect updates the
+    // browser URL bar (server component redirect() did not).
+    return [
+      {
+        source: "/list/module-settings",
+        destination: "/settings",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
