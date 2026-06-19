@@ -28,7 +28,11 @@ async function fetchMyMemberships(token: string): Promise<MeMembershipsResponse>
 
 function handleFromEmail(email: string): string {
   if (!email) return "user";
-  if (email.startsWith("+")) return email.replace(/[^0-9]/g, "");
+  // Synthetic phone-only users have email of form `phone+<E164>@users.freshify.io`.
+  // Render the E.164 phone (with single leading +), not the literal `phone+` prefix.
+  const phoneMatch = email.match(/^phone\+?(\+?\d+)/);
+  if (phoneMatch) return `+${phoneMatch[1].replace(/[^0-9]/g, "")}`;
+  if (email.startsWith("+")) return email;
   return email.split("@")[0] || email;
 }
 
