@@ -196,7 +196,7 @@ export default async function UsersListPage({
         </div>
       )}
 
-      {/* RAS metric cards */}
+      {/* Metric cards */}
       <div className="metrics-row">
         <div className="metric-card">
           <div className="metric-card-top">
