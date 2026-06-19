@@ -81,7 +81,7 @@ export default async function UsersModuleSettingsPage() {
     return (
       <OperatorOnly403
         active="users"
-        pageTitle="Users — Module Settings"
+        pageTitle="Users — Settings"
         user={{
           userId: claims.userId,
           displayName,
