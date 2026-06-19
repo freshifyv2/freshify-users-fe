@@ -19,7 +19,7 @@ Pre-auth screens (login, signup, password reset, invite acceptance) live in the 
 
 ```bash
 npm install
-cp .env.example .env  # set USERS_BASE_URL, PORTAL_SHELL_URL
+cp .env.example .env  # set USERS_SERVICE_URL, COMPANIES_SERVICE_URL, WORKSPACES_SERVICE_URL, PORTAL_SHELL_URL
 npm run dev
 ```
 
@@ -29,9 +29,11 @@ Defaults to `http://localhost:3001`. In production, mounted under the shell — 
 
 | Variable | Required | Notes |
 |---|---|---|
-| `USERS_BASE_URL` | yes | `freshify-users` backend URL |
+| `USERS_SERVICE_URL` | yes | `freshify-users` backend URL |
+| `COMPANIES_SERVICE_URL` | yes | `freshify-companies` backend URL |
+| `WORKSPACES_SERVICE_URL` | yes | `freshify-workspaces` backend URL |
 | `PORTAL_SHELL_URL` | yes | Used to redirect unauthenticated traffic to the shell's login |
-| `USER_JWT_SECRET` | yes | HS256 verification secret for user sessions |
+| `SESSION_COOKIE_NAME` | no | Defaults to `sp_session` |
 | `PORT` | no | Defaults to `3001` |
 
 ## Stack
