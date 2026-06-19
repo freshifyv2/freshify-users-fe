@@ -76,3 +76,64 @@ export const COMPANIES_URL =
 export const WORKSPACES_URL =
   process.env.WORKSPACES_SERVICE_URL ||
   "https://freshify-workspaces-sbzaekoo4q-uc.a.run.app";
+
+/* ------------------------------------------------------------------------- */
+/* Sprint 4 / C5 — Module Registry/Settings helpers + types                   */
+/* ------------------------------------------------------------------------- */
+
+export async function putUsers<T>(path: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(`${USERS_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`users ${path} ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export async function delUsers<T>(path: string, token: string): Promise<T> {
+  const res = await fetch(`${USERS_URL}${path}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`users ${path} ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export interface ModuleSettingsView {
+  moduleId: string;
+  defaultRoleKey: string;
+  availableRoleKeys: string[];
+  version: number;
+  updatedAt: string;
+  updatedBy?: string | null;
+}
+
+export interface ModuleAdminView {
+  userId: string;
+  source: "bootstrap" | "manual";
+  grantedBy?: string | null;
+  grantedAt: string;
+}
+
+export interface ModuleInfoView {
+  moduleId: string;
+  service: string;
+  collections: string[];
+  endpoints: string[];
+  ownsRoleCatalog: string;
+  ownsRegistry?: string;
+  defaultRoleKey: string;
+  availableRoleKeys: string[];
+}

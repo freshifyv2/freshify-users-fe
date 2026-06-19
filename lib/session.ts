@@ -30,6 +30,13 @@ export function readSessionToken(): string | null {
   return cookies().get(SESSION_COOKIE)?.value ?? null;
 }
 
+/** Throws if no session token. Used by proxy route handlers. */
+export function requireToken(): string {
+  const t = readSessionToken();
+  if (!t) throw new Error("no session");
+  return t;
+}
+
 export function decodeClaims(token: string): SessionClaims | null {
   try {
     const [, payload] = token.split(".");
