@@ -10,7 +10,7 @@ import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
 import { getUsers } from "@/lib/api";
-import { Chrome } from "@/lib/Chrome";
+import { Chrome } from "@freshifyv2/portal-shell-ui";
 import { OperatorOnly403 } from "@/lib/OperatorOnly";
 import EditUserForm from "./EditUserForm";
 

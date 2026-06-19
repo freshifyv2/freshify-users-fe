@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
-import { Chrome } from "@/lib/Chrome";
-import { loadChromeContext } from "@/lib/chromeContext";
+import { Chrome } from "@freshifyv2/portal-shell-ui";
+import { loadChromeContext } from "@freshifyv2/portal-shell-ui";
 
 export const dynamic = "force-dynamic";
 

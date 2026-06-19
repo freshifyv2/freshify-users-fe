@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { readSessionToken } from "@/lib/session";
 import { decodeJwt } from "@/lib/jwt";
-import { Chrome } from "@/lib/Chrome";
+import { Chrome } from "@freshifyv2/portal-shell-ui";
 import { OperatorOnly403 } from "@/lib/OperatorOnly";
 import { getServiceJson, COMPANIES_URL, WORKSPACES_URL } from "@/lib/api";
 import NewUserForm from "./NewUserForm";
