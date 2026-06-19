@@ -127,13 +127,20 @@ export interface ModuleAdminView {
   grantedAt: string;
 }
 
+/**
+ * Sprint 4 / C5.1 — Mirrors BE freshify-users getModuleInfo response shape.
+ * Kept in parity with companies-fe and workspaces-fe.
+ */
 export interface ModuleInfoView {
   moduleId: string;
-  service: string;
+  backendService: string;
+  frontendService: string;
   collections: string[];
-  endpoints: string[];
-  ownsRoleCatalog: string;
-  ownsRegistry?: string;
-  defaultRoleKey: string;
+  routePrefix: string;
+  authOwnership: { owns: boolean; note: string };
+  settingsOwnership: { owner: string; note: string };
+  settingsUrl: string;
+  smiVersion: string;
   availableRoleKeys: string[];
+  roleLabels: Record<string, string>;
 }
